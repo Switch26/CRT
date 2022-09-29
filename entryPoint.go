@@ -5,18 +5,39 @@ package main
 import (
 	"fmt"
 	"github.com/gocql/gocql"
+	"log"
 )
+
+var Global_keyspace = "links_keyspace"
 
 func main() {
 
 	cluster := gocql.NewCluster("cassandra_some_network")
-	cluster.Keyspace = "links_keyspace"
-	cluster.Consistency = gocql.Quorum
-
-	if _, err := cluster.CreateSession(); err != nil {
-		panic(err)
+	cluster.Keyspace = Global_keyspace
+	session, err := cluster.CreateSession()
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer session.Close()
 
 	fmt.Println("Connection successfull...")
-	fmt.Println("hahaha")
+
+	// Check for links
+	//Qme2RGkCMaj1ajYBR9oPcyu8M4PSL7zLAwow6RbANMgCCk
+	scanner := session.Query(`SELECT * FROM links_keyspace.links`).Iter().Scanner()
+	for scanner.Next() {
+		var (
+			hash  string
+			links []string
+		)
+		err = scanner.Scan(&hash, &links)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("hash:", hash)
+		fmt.Println("links:", links)
+	}
+
+	fmt.Println("Query successfull?")
+
 }
